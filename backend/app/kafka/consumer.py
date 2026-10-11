@@ -3,6 +3,7 @@ import json
 from aiokafka import AIOKafkaConsumer
 from app.config import settings
 from app.kafka.topics import ANALYSIS_REQUESTS
+from app.monitoring.logger import logger
 
 _consumer: AIOKafkaConsumer | None = None
 
@@ -23,7 +24,7 @@ async def start_consumer():
                 from app.celery_app.tasks import run_agent_pipeline
                 run_agent_pipeline.delay(job_data)
             except Exception as e:
-                print(f"Error processing Kafka message: {e}")
+                logger.error(f"Error processing Kafka message: {e}")
     finally:
         await _consumer.stop()
 

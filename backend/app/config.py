@@ -6,11 +6,17 @@ class Settings(BaseSettings):
     REDIS_URL: str
     KAFKA_BOOTSTRAP_SERVERS: str = "kafka:9092"
     KAFKA_CONSUMER_GROUP: str = "jobpilot-group"
-    ANTHROPIC_API_KEY: str
+    CELERY_BROKER_URL: str = "redis://redis:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
+    OPENROUTER_API_KEY: str
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    LLM_MODEL: str = "google/gemma-4-31b-it:free"
+    LLM_FALLBACK_MODEL: str = "qwen/qwen3.8-27b:free"
     JINA_API_KEY: str
     LANGFUSE_PUBLIC_KEY: str
     LANGFUSE_SECRET_KEY: str
-    LANGFUSE_HOST: str
+    LANGFUSE_HOST: str = "https://us.cloud.langfuse.com"
+    FIRECRAWL_API_KEY: str = ""
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
