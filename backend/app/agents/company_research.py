@@ -3,16 +3,12 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langfuse import observe
 from tenacity import retry, stop_after_attempt, wait_exponential
+from app.agents.llm import get_llm
 from app.agents.state import AgentState
 from app.config import settings
 from app.websocket.manager import manager
 
-_llm = ChatOpenAI(
-    model=settings.LLM_MODEL,
-    openai_api_key=settings.OPENROUTER_API_KEY,
-    openai_api_base=settings.OPENROUTER_BASE_URL,
-    max_retries=0,
-)
+_llm = get_llm()
 
 _JINA_HEADERS = {
     "Authorization": f"Bearer {settings.JINA_API_KEY}",
@@ -21,14 +17,19 @@ _JINA_HEADERS = {
 
 _PROMPT = """You are a company research analyst. Based on the raw content below, write a concise research summary.
 
-Cover these sections:
-1. What the company does (product/service, market, customers)
-2. Tech stack they use (from job postings, engineering blog, etc.)
-3. Recent news (funding, launches, acquisitions, layoffs)
-4. Culture and values
-5. Funding status / company stage (if available)
+Format your response using markdown with these exact sections:
+## What the company does
+## Tech stack
+## Recent news
+## Culture and values
+## Funding status
 
-Be factual. Use only information present in the content. If a section has no data, write "Not found."
+Rules:
+- Use bullet points under each section
+- Be factual, use only information present in the content
+- If a section has no data, write "Not found."
+- Do NOT use tables
+- Do NOT add a title or intro line
 
 Company: {company_name}
 

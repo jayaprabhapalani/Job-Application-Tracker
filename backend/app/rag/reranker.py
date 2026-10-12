@@ -22,4 +22,4 @@ async def rerank(query: str, chunks: list[str], top_n: int = 5) -> list[str]:
         )
         response.raise_for_status()
     results = response.json()["results"]
-    return [r["document"]["text"] if isinstance(r, dict) else r for r in results]
+    return [r["document"] if isinstance(r, dict) else r for r in results]

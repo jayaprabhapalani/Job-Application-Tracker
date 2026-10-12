@@ -37,12 +37,24 @@ export default function AgentProgress({ messages = [] }) {
         {AGENTS.map((agent, i) => {
           const status = statuses[i]
           return (
-            <div key={agent.key} className="flex items-center gap-3 text-sm">
-              {icons[status] || icons.pending}
-              <span className={status === 'completed' ? 'text-muted-foreground line-through' : ''}>
-                {agent.label}
-              </span>
-              <span className="ml-auto text-xs text-muted-foreground capitalize">{status}</span>
+            <div key={agent.key} className="flex flex-col gap-1">
+              <div className="flex items-center gap-3 text-sm">
+                {icons[status] || icons.pending}
+                <span className={status === 'completed' ? 'text-muted-foreground line-through' : ''}>
+                  {agent.label}
+                </span>
+                <span className="ml-auto text-xs text-muted-foreground capitalize">{status}</span>
+              </div>
+              {status === 'failed' && (() => {
+                const last = messages.filter((m) => m.agent === agent.key).at(-1)
+                const errors = last?.errors
+                const msg = last?.message
+                return (
+                  <div className="ml-7 text-xs text-red-500 space-y-0.5">
+                    {errors?.length ? errors.map((e, i) => <div key={i}>• {e}</div>) : msg ? <div>{msg}</div> : null}
+                  </div>
+                )
+              })()}
             </div>
           )
         })}

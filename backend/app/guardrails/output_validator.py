@@ -13,7 +13,11 @@ def _has_placeholder(text: str) -> bool:
 def _strip_fences(text: str) -> str:
     """Strip markdown code fences that free LLMs add despite instructions."""
     import re
-    return re.sub(r"^```[\w]*\n?", "", re.sub(r"\n?```$", "", text.strip())).strip()
+    text = text.strip()
+    # Remove all opening fences (```latex, ```tex, ``` etc)
+    text = re.sub(r"^```[\w]*\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"```\s*$", "", text, flags=re.MULTILINE)
+    return text.strip()
 
 
 def _validate(state: AgentState) -> list[str]:

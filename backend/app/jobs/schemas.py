@@ -18,11 +18,12 @@ class ApplicationResponse(BaseModel):
     jd_text: str
     jd_url: Optional[str]
     status: str
-    tailored_resume: Optional[str]
-    cover_letter: Optional[str]
-    company_research: Optional[str]
-    interview_questions: Optional[dict]
-    parsed_jd: Optional[dict]
+    tailored_resume: Optional[str] = None
+    tailored_resume_latex: Optional[str] = None
+    cover_letter: Optional[str] = None
+    company_research: Optional[str] = None
+    interview_questions: Optional[list | dict] = None
+    parsed_jd: Optional[dict] = None
     pipeline_status: str
     created_at: datetime
     updated_at: datetime

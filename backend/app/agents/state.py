@@ -1,4 +1,4 @@
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 
 def _last(a, b):
@@ -13,6 +13,8 @@ class AgentState(TypedDict):
     job_id: Annotated[str, _last]
     user_id: Annotated[str, _last]
     jd_text: Annotated[str, _last]
+    company: Annotated[str, _last]
+    role: Annotated[str, _last]
 
     # Agent outputs
     parsed_jd: Annotated[dict, _last]
@@ -31,3 +33,6 @@ class AgentState(TypedDict):
 
     # Error tracking
     error: Annotated[str, _last]
+
+    # Internal — session factory passed through pipeline
+    _session_factory: Annotated[Any, _last]

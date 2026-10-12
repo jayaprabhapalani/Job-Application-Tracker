@@ -8,4 +8,7 @@ export default defineConfig({
       '@': `${import.meta.dirname}/src`,
     },
   },
+  optimizeDeps: {
+    include: ['react-markdown'],
+  },
 })

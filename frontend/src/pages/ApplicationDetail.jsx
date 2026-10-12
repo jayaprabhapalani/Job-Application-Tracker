@@ -5,6 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import Navbar from '@/components/Navbar'
 import AgentProgress from '@/components/AgentProgress'
 import ResumeViewer from '@/components/ResumeViewer'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,9 +18,22 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'rejected']
 function InterviewQuestions({ questions }) {
   const [open, setOpen] = useState({})
   if (!questions) return null
+
+  // Normalize questions whether provided as array or object
+  const grouped = {}
+  if (Array.isArray(questions)) {
+    questions.forEach((q) => {
+      const cat = q.category || 'general'
+      if (!grouped[cat]) grouped[cat] = []
+      grouped[cat].push(q)
+    })
+  } else if (typeof questions === 'object') {
+    Object.assign(grouped, questions)
+  }
+
   return (
     <div className="space-y-6">
-      {Object.entries(questions).map(([category, items]) => (
+      {Object.entries(grouped).map(([category, items]) => (
         <div key={category}>
           <h3 className="font-semibold capitalize mb-2">{category.replace(/_/g, ' ')}</h3>
           <div className="space-y-2">
@@ -28,17 +42,17 @@ function InterviewQuestions({ questions }) {
               const hint = typeof q === 'object' ? q.hint : null
               return (
                 <div key={i} className="rounded border p-3 text-sm">
-                  <p>{question}</p>
+                  <p className="font-medium">{question}</p>
                   {hint && (
                     <button
-                      className="text-xs text-muted-foreground mt-1 underline"
+                      className="text-xs text-muted-foreground mt-2 underline cursor-pointer block"
                       onClick={() => setOpen((prev) => ({ ...prev, [`${category}-${i}`]: !prev[`${category}-${i}`] }))}
                     >
                       {open[`${category}-${i}`] ? 'Hide hint' : 'Show hint'}
                     </button>
                   )}
                   {open[`${category}-${i}`] && hint && (
-                    <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+                    <p className="text-xs text-muted-foreground mt-1 bg-muted/40 p-2 rounded">{hint}</p>
                   )}
                 </div>
               )
@@ -70,7 +84,7 @@ export default function ApplicationDetail() {
   const navigate = useNavigate()
   const [app, setApp] = useState(null)
   const [loading, setLoading] = useState(true)
-  const { messages } = useWebSocket(app?.pipeline_status !== 'completed' ? id : null)
+  const { messages } = useWebSocket(app && app.pipeline_status !== 'completed' ? id : null)
 
   useEffect(() => {
     client.get(`/jobs/${id}`).then(({ data }) => setApp(data)).finally(() => setLoading(false))
@@ -79,7 +93,13 @@ export default function ApplicationDetail() {
   // Refresh app data when pipeline completes via WS
   useEffect(() => {
     const last = messages[messages.length - 1]
-    if (last?.pipeline_status === 'completed' || last?.status === 'completed' && last?.agent === 'synthesizer') {
+    if (!last) return
+    // sync message = WS just connected, pipeline already done
+    if (last.type === 'sync' && last.pipeline_status === 'completed') {
+      client.get(`/jobs/${id}`).then(({ data }) => setApp(data))
+      return
+    }
+    if (last?.pipeline_status === 'completed' || (last?.status === 'completed' && last?.agent === 'synthesizer')) {
       client.get(`/jobs/${id}`).then(({ data }) => setApp(data))
     }
   }, [messages, id])
@@ -154,19 +174,50 @@ export default function ApplicationDetail() {
 
             <TabsContent value="jd">
               <Card><CardContent className="p-4 space-y-4">
-                {app.parsed_jd?.skills?.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-b pb-4">
                   <div>
-                    <p className="font-semibold mb-2">Skills</p>
+                    <p className="text-xs text-muted-foreground">Company</p>
+                    <p className="font-semibold text-sm">{app.parsed_jd?.company_name || app.company}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Role</p>
+                    <p className="font-semibold text-sm">{app.parsed_jd?.role_title || app.role}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Experience Level</p>
+                    <p className="font-semibold text-sm capitalize">{app.parsed_jd?.experience_level || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                {((app.parsed_jd?.required_skills?.length > 0) || (app.parsed_jd?.skills?.length > 0)) && (
+                  <div>
+                    <p className="font-semibold mb-2">Required Skills</p>
                     <div className="flex flex-wrap gap-2">
-                      {app.parsed_jd.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>)}
+                      {(app.parsed_jd?.required_skills || app.parsed_jd?.skills || []).map((s) => (
+                        <Badge key={s} variant="secondary">{s}</Badge>
+                      ))}
                     </div>
                   </div>
                 )}
-                {app.parsed_jd?.requirements?.length > 0 && (
+
+                {app.parsed_jd?.nice_to_have_skills?.length > 0 && (
                   <div>
-                    <p className="font-semibold mb-2">Requirements</p>
+                    <p className="font-semibold mb-2">Nice-to-Have Skills</p>
+                    <div className="flex flex-wrap gap-2">
+                      {app.parsed_jd.nice_to_have_skills.map((s) => (
+                        <Badge key={s} variant="outline">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {((app.parsed_jd?.key_responsibilities?.length > 0) || (app.parsed_jd?.requirements?.length > 0)) && (
+                  <div>
+                    <p className="font-semibold mb-2">Key Responsibilities & Requirements</p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      {app.parsed_jd.requirements.map((r, i) => <li key={i}>{r}</li>)}
+                      {(app.parsed_jd?.key_responsibilities || app.parsed_jd?.requirements || []).map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
@@ -175,7 +226,7 @@ export default function ApplicationDetail() {
 
             <TabsContent value="resume">
               <Card><CardContent className="p-4">
-                <ResumeViewer latexString={app.tailored_resume} />
+                <ResumeViewer latexString={app.tailored_resume_latex || app.tailored_resume} />
               </CardContent></Card>
             </TabsContent>
 
@@ -188,7 +239,9 @@ export default function ApplicationDetail() {
 
             <TabsContent value="research">
               <Card><CardContent className="p-4">
-                <p className="text-sm whitespace-pre-wrap">{app.company_research}</p>
+                <div className="text-sm space-y-2 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:list-inside [&_ol]:list-decimal [&_ol]:list-inside [&_p]:mb-2 [&_strong]:font-semibold">
+                  <ReactMarkdown>{app.company_research}</ReactMarkdown>
+                </div>
               </CardContent></Card>
             </TabsContent>
 

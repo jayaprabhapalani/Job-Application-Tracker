@@ -30,10 +30,45 @@ export default function Dashboard() {
   const [loadingApps, setLoadingApps] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [resume, setResume] = useState(null)
+  const [resumeSubmitting, setResumeSubmitting] = useState(false)
+  const [resumeMsg, setResumeMsg] = useState('')
 
   useEffect(() => {
     client.get('/jobs/').then(({ data }) => setApplications(data)).finally(() => setLoadingApps(false))
+    client.get('/jobs/resume').then(({ data }) => setResume(data)).catch(() => {})
   }, [])
+
+  async function handleResumeSubmit(e) {
+    e.preventDefault()
+    setResumeMsg('')
+    setResumeSubmitting(true)
+    const raw = new FormData(e.target)
+    const file = raw.get('resume_file')
+    const content = raw.get('resume_content')
+    const form = new FormData()
+    if (file && file.size > 0) {
+      form.append('file', file)
+    } else if (content) {
+      form.append('content', content)
+    } else {
+      setResumeMsg('Provide a file or paste resume text.')
+      setResumeSubmitting(false)
+      return
+    }
+    try {
+      const { data } = await client.post('/jobs/resume', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setResume(data)
+      setResumeMsg('Resume saved successfully.')
+      e.target.reset()
+    } catch (err) {
+      setResumeMsg(err.response?.data?.detail || 'Failed to save resume')
+    } finally {
+      setResumeSubmitting(false)
+    }
+  }
 
   const counts = {
     Total: applications.length,
@@ -73,6 +108,47 @@ export default function Dashboard() {
             <StatCard key={label} label={label} count={count} />
           ))}
         </div>
+
+        {/* Resume */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Resume
+              {resume && <span className="text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full">✓ Uploaded</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {resume && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Last updated: {new Date(resume.created_at).toLocaleDateString()} · {resume.content.length} chars
+              </p>
+            )}
+            <form onSubmit={handleResumeSubmit} className="space-y-3">
+              {resumeMsg && (
+                <Alert variant={resumeMsg.includes('success') ? 'default' : 'destructive'}>
+                  <AlertDescription>{resumeMsg}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="resume_file">Upload PDF, DOCX, or TXT</Label>
+                <Input id="resume_file" name="resume_file" type="file" accept=".pdf,.docx,.txt" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="resume_content">Or paste plain text</Label>
+                <Textarea
+                  id="resume_content"
+                  name="resume_content"
+                  rows={6}
+                  placeholder="Paste your resume text here…"
+                  defaultValue={resume?.content || ''}
+                />
+              </div>
+              <Button type="submit" disabled={resumeSubmitting}>
+                {resumeSubmitting ? 'Saving…' : resume ? 'Update Resume' : 'Save Resume'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* New Application */}
         <Card>

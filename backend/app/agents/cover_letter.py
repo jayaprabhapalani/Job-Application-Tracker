@@ -2,16 +2,12 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langfuse import observe
 from tenacity import retry, stop_after_attempt, wait_exponential
+from app.agents.llm import get_llm
 from app.agents.state import AgentState
 from app.config import settings
 from app.websocket.manager import manager
 
-_llm = ChatOpenAI(
-    model=settings.LLM_MODEL,
-    openai_api_key=settings.OPENROUTER_API_KEY,
-    openai_api_base=settings.OPENROUTER_BASE_URL,
-    max_retries=0,
-)
+_llm = get_llm()
 
 _PROMPT = """You are an expert cover letter writer. Write a compelling, personalized cover letter for the job application below.
 

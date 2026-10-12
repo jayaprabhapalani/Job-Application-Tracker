@@ -27,6 +27,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-latex-next": "^3.0.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.4",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3"

@@ -32,6 +32,7 @@ async def synthesizer_agent(state: AgentState, db: AsyncSession) -> AgentState:
                 parsed_jd=state.get("parsed_jd"),
                 company_research=state.get("company_research"),
                 interview_questions=state.get("interview_questions"),
+                tailored_resume=latex,
                 tailored_resume_latex=latex,
                 cover_letter=state.get("cover_letter"),
                 pipeline_status="completed",
@@ -42,6 +43,7 @@ async def synthesizer_agent(state: AgentState, db: AsyncSession) -> AgentState:
         await manager.send_progress(job_id, {
             "agent": "synthesizer",
             "status": "completed",
+            "pipeline_status": "completed",
             "message": "Pipeline complete. All results ready.",
             "data": {
                 "parsed_jd": state.get("parsed_jd"),

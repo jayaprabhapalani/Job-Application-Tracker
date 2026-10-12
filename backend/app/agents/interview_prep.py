@@ -5,17 +5,13 @@ from langchain_core.messages import HumanMessage
 from langfuse import observe
 from tenacity import retry, stop_after_attempt, wait_exponential
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.agents.llm import get_llm
 from app.agents.state import AgentState
 from app.config import settings
 from app.rag.retriever import retrieve_interview_context
 from app.websocket.manager import manager
 
-_llm = ChatOpenAI(
-    model=settings.LLM_MODEL,
-    openai_api_key=settings.OPENROUTER_API_KEY,
-    openai_api_base=settings.OPENROUTER_BASE_URL,
-    max_retries=0,
-)
+_llm = get_llm()
 
 _PROMPT = """You are an expert interview coach. Generate exactly 10 interview questions for the role below.
 

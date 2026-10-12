@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.auth.dependencies import get_current_user
@@ -10,16 +11,41 @@ from app.rag.vector_store import chunk_text, store_chunks, delete_chunks
 router = APIRouter()
 
 
-@router.post("/resume", response_model=schemas.ResumeResponse)
+def _extract_text_from_file(filename: str, data: bytes) -> str:
+    ext = filename.rsplit('.', 1)[-1].lower()
+    if ext == 'pdf':
+        import fitz
+        doc = fitz.open(stream=data, filetype='pdf')
+        return '\n'.join(page.get_text() for page in doc)
+    elif ext in ('docx', 'doc'):
+        import docx, io
+        doc = docx.Document(io.BytesIO(data))
+        return '\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+    elif ext == 'txt':
+        return data.decode('utf-8', errors='ignore')
+    else:
+        raise HTTPException(status_code=400, detail=f'Unsupported file type: .{ext}. Use PDF, DOCX, or TXT.')
+
+
+@router.post('/resume', response_model=schemas.ResumeResponse)
 async def upload_resume(
-    payload: schemas.ResumeCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
+    file: Optional[UploadFile] = File(None),
+    content: Optional[str] = Form(None),
 ):
-    await delete_chunks(db, current_user.id, source="resume")
-    chunks = chunk_text(payload.content)
-    await store_chunks(db, current_user.id, chunks, source="resume")
-    resume = await service.create_resume(db, current_user.id, payload.content)
+    if file and file.filename:
+        raw = await file.read()
+        text = _extract_text_from_file(file.filename, raw)
+    elif content:
+        text = content
+    else:
+        raise HTTPException(status_code=400, detail='Provide either a file or content.')
+
+    await delete_chunks(db, current_user.id, source='resume')
+    chunks = chunk_text(text)
+    await store_chunks(db, current_user.id, chunks, source='resume')
+    resume = await service.create_resume(db, current_user.id, text)
     return resume
 
 
@@ -45,7 +71,8 @@ async def create_job(
     await publish_event(
         ANALYSIS_REQUESTS,
         str(app.id),
-        {"job_id": str(app.id), "user_id": current_user.id, "jd_text": payload.jd_text},
+        {"job_id": str(app.id), "user_id": current_user.id, "jd_text": payload.jd_text,
+         "company": payload.company, "role": payload.role},
     )
 
     return app
