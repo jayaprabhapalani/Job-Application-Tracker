@@ -22,9 +22,6 @@ import {
   Sparkles,
   ChevronDown,
   HelpCircle,
-  Briefcase,
-  CheckCircle2,
-  Calendar,
   ExternalLink,
 } from 'lucide-react'
 
