@@ -7,6 +7,7 @@ import time
 from app.celery_app import celery_app
 from app.config import settings
 from app.agents.orchestrator import run_pipeline
+from app.database import DATABASE_URL
 from app.jobs.models import Application
 from app.websocket.manager import manager
 from app.monitoring.tracing import flush_langfuse
@@ -14,7 +15,7 @@ from app.monitoring.metrics import pipeline_total, pipeline_duration_seconds, ac
 
 
 def _make_engine():
-    return create_async_engine(settings.DATABASE_URL, pool_size=2, max_overflow=0)
+    return create_async_engine(DATABASE_URL, pool_size=2, max_overflow=0)
 
 
 @celery_app.task(name="app.celery_app.tasks.run_agent_pipeline")
