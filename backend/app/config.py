@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     KAFKA_SASL_MECHANISM: str = "SCRAM-SHA-256"  # PLAIN or SCRAM-SHA-256 / SCRAM-SHA-512
     KAFKA_SASL_USERNAME: str | None = None
     KAFKA_SASL_PASSWORD: str | None = None
+    KAFKA_SSL_CA_CERT: str | None = None
     CELERY_BROKER_URL: str = "redis://redis:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
     GROQ_API_KEY: str = ""
