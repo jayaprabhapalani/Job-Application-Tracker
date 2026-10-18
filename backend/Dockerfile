@@ -29,6 +29,7 @@ RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-smal
 
 ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
+ENV C_FORCE_ROOT=true
 
 EXPOSE 8000
 
