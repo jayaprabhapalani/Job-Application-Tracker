@@ -8,7 +8,11 @@ export function useWebSocket(jobId) {
   useEffect(() => {
     if (!jobId) return
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/${jobId}`)
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const wsUrl = baseUrl
+      .replace(/^https:\/\//, 'wss://')
+      .replace(/^http:\/\//, 'ws://')
+    const ws = new WebSocket(`${wsUrl}/ws/${jobId}`)
     wsRef.current = ws
 
     ws.onopen = () => setIsConnected(true)
