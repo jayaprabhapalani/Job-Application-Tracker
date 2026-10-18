@@ -17,6 +17,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.monitoring.tracing import init_langfuse, init_otel, flush_langfuse
 import app.monitoring.metrics  # registers custom prometheus metrics
+from app.monitoring.logger import logger
 from app.database import engine, Base
 import app.auth.models  # registers User table
 import app.jobs.models  # registers Application, Resume, DocumentChunk tables
@@ -40,11 +41,20 @@ async def lifespan(app: FastAPI):
     init_langfuse()
     init_otel(engine)
     await init_redis()
-    await start_producer()
-    consumer_task = asyncio.create_task(start_consumer())
+
+    consumer_task = None
+    try:
+        await start_producer()
+        consumer_task = asyncio.create_task(start_consumer())
+        logger.info("Kafka producer and consumer connected successfully.")
+    except Exception as e:
+        logger.error(f"Kafka connection error ({e}). Proceeding in direct Celery mode.")
+
     yield
-    consumer_task.cancel()
-    await stop_consumer()
+
+    if consumer_task:
+        consumer_task.cancel()
+        await stop_consumer()
     await stop_producer()
     await close_redis()
     await flush_langfuse()

@@ -10,11 +10,16 @@ _producer: AIOKafkaProducer | None = None
 def _build_ssl_context():
     context = ssl.create_default_context()
     ca_cert = getattr(settings, "KAFKA_SSL_CA_CERT", None)
-    if ca_cert:
-        if os.path.exists(ca_cert):
-            context.load_verify_locations(cafile=ca_cert)
+    if ca_cert and ca_cert.strip():
+        if os.path.exists(ca_cert.strip()):
+            context.load_verify_locations(cafile=ca_cert.strip())
         else:
-            context.load_verify_locations(cadata=ca_cert)
+            context.load_verify_locations(cadata=ca_cert.strip())
+        return context
+
+    # If no CA certificate provided, permit TLS without rejecting Aiven Project CA
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
     return context
 
 
